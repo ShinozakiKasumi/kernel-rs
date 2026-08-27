@@ -1,0 +1,19 @@
+# build artifacts
+*.o
+*.elf
+*.iso
+iso_root/
+
+# qemu/debug residue
+serial.log
+qemu.log
+mon.sock
+*.ppm
+*.pgm
+gui.png
+gui2.png
+shot*.png
+wslg.png
+
+# third-party bootloader (clone: limine v8.x-binary branch)
+limine/
