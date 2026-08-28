@@ -1,0 +1,4 @@
+Welcome to Shizuku!
+
+A small teaching OS: kernel + userland + tmpfs root.
+Type 'help' for shell builtins, 'ls /bin' for commands.

@@ -1,0 +1,10 @@
+[package]
+name = "shizuku-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[[bin]]
+name = "kernel"
+path = "src/main.rs"

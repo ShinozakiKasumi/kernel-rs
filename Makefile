@@ -1,64 +1,44 @@
-# M0: Limine bootable x86_64 teaching kernel
+# Shizuku: Limine-bootable x86_64 kernel, rewritten in Rust.
+#
+# Kernel: kernel-rs/ (cargo, custom x86_64-shizuku.json target, rust-lld).
+# Userland: userspace-rs/ (Rust, custom user target) — see userspace-rs/.
+# The legacy C tree (src/, kernel/, userspace/) is kept only until the
+# Rust port has boot parity; the Makefile no longer builds it.
 
-CC      := x86_64-linux-gnu-gcc
-LD      := x86_64-linux-gnu-ld
-CFLAGS  := -Wall -Wextra -O2 -g \
-           -std=c11 \
-           -ffreestanding -fno-stack-protector -fno-pic -fno-pie \
-           -nostdlib \
-           -Iinclude -Isrc -Ikernel/gui \
-           -mno-red-zone -mno-80387 -mno-mmx -mno-sse -mno-sse2 \
-           -mcmodel=kernel
-LDFLAGS := -nostdlib -static -z max-page-size=0x1000 -T linker.ld
+CARGO       := cargo
+TARGET      := x86_64-shizuku.json
+KERNEL_BIN  := target/x86_64-shizuku/release/kernel
+KERNEL      := kernel.elf
+HELLO_ELF   := userspace-rs/target/x86_64-shizuku-user/release/hello
 
-SRC     := src/main.c src/uart.c src/kprintf.c src/fb.c \
-           src/gdt.c src/idt.c src/pic.c \
-           src/lib/string.c \
-           src/mm/pmm.c src/mm/vmm.c \
-           src/sched/sched.c \
-           src/proc/elf.c src/proc/proc.c src/proc/syscall.c \
-           src/fs/tmpfs.c src/kbd.c src/shell.c \
-           kernel/gui/core/surface.c kernel/gui/core/mouse.c \
-           kernel/gui/render/font.c kernel/gui/render/font8x16.c \
-           kernel/gui/window/wm.c \
-           src/isr.S
-OBJ     := $(SRC:.c=.o)
-OBJ     := $(OBJ:.S=.o)
-OBJ     += userspace/hello_bin.o
-KERNEL  := kernel.elf
-
-.PHONY: all clean run
+.PHONY: all clean run iso qemu userland
 
 all: $(KERNEL)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# --- kernel ----------------------------------------------------------------
 
-%.o: %.S
-	$(CC) $(CFLAGS) -c $< -o $@
+$(KERNEL): userland $(shell find kernel-rs -name '*.rs')
+	SHIZUKU_HELLO_ELF=$(abspath $(HELLO_ELF)) $(CARGO) build --release --manifest-path kernel-rs/Cargo.toml
+	cp $(KERNEL_BIN) $@
 
-# --- userland (ring-3 test programs) ---------------------------------------
-UCFLAGS := -Wall -Wextra -O2 -ffreestanding -nostdlib -fno-pie -no-pie \
-           -mno-sse -mno-red-zone -Iuserspace
+# --- userland --------------------------------------------------------------
 
-userspace/hello.elf: userspace/hello.c userspace/link.ld
-	$(CC) $(UCFLAGS) -T userspace/link.ld $< -o $@
+userland:
+	cd userspace-rs && $(CARGO) build --release
 
-userspace/hello_bin.o: userspace/hello.elf
-	cd userspace && objcopy -I binary -O elf64-x86-64 -B i386:x86-64 \
-	    hello.elf hello_bin.o
-
-$(KERNEL): $(OBJ) linker.ld
-	$(LD) $(LDFLAGS) $(OBJ) -o $@
+initrd.tar: userland tools/mkinitrd.sh $(wildcard rootfs/etc/*)
+	sh tools/mkinitrd.sh
 
 # --- bootable image ----------------------------------------------------------
+
 ISO_DIR := iso_root
 ISO     := shizuku.iso
 LIMINE  := limine
 
-iso: $(KERNEL)
+iso: $(KERNEL) initrd.tar
 	mkdir -p $(ISO_DIR)/boot/limine
 	cp $(KERNEL) $(ISO_DIR)/boot/
+	cp initrd.tar $(ISO_DIR)/boot/
 	cp limine.conf $(ISO_DIR)/boot/limine/
 	cp $(LIMINE)/limine-bios.sys $(LIMINE)/limine-bios-cd.bin \
 	   $(LIMINE)/limine-uefi-cd.bin $(ISO_DIR)/boot/limine/
@@ -75,4 +55,7 @@ qemu: iso
 run: qemu
 
 clean:
-	rm -f src/*.o src/*/*.o userspace/*.o userspace/*.elf $(KERNEL)
+	rm -f initrd.tar $(KERNEL) $(ISO)
+	rm -rf $(ISO_DIR)
+	-$(CARGO) clean --manifest-path kernel-rs/Cargo.toml
+	-$(CARGO) clean --manifest-path userspace-rs/Cargo.toml

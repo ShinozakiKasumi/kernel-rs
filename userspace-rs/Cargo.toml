@@ -1,0 +1,73 @@
+[workspace]
+
+[package]
+name = "userland"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ulib"
+path = "src/ulib.rs"
+
+# Each user program is a freestanding binary linked at 0x400000.
+[[bin]]
+name = "hello"
+path = "src/bin/hello.rs"
+[[bin]]
+name = "init"
+path = "src/bin/init.rs"
+[[bin]]
+name = "sh"
+path = "src/bin/sh.rs"
+[[bin]]
+name = "ls"
+path = "src/bin/ls.rs"
+[[bin]]
+name = "ps"
+path = "src/bin/ps.rs"
+[[bin]]
+name = "mem"
+path = "src/bin/mem.rs"
+[[bin]]
+name = "uname"
+path = "src/bin/uname.rs"
+[[bin]]
+name = "sleep"
+path = "src/bin/sleep.rs"
+[[bin]]
+name = "echo"
+path = "src/bin/echo.rs"
+[[bin]]
+name = "cat"
+path = "src/bin/cat.rs"
+[[bin]]
+name = "hexdump"
+path = "src/bin/hexdump.rs"
+[[bin]]
+name = "pwd"
+path = "src/bin/pwd.rs"
+[[bin]]
+name = "true"
+path = "src/bin/true_bin.rs"
+[[bin]]
+name = "clear"
+path = "src/bin/clear.rs"
+[[bin]]
+name = "cp"
+path = "src/bin/cp.rs"
+[[bin]]
+name = "mv"
+path = "src/bin/mv.rs"
+[[bin]]
+name = "rm"
+path = "src/bin/rm.rs"
+[[bin]]
+name = "mkdir"
+path = "src/bin/mkdir.rs"
+[[bin]]
+name = "touch"
+path = "src/bin/touch.rs"
+
+[profile.release]
+opt-level = 2
+panic = "abort"
